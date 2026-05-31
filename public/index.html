@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FestGuru</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #080808; color: #d4cfc5; font-family: 'DM Mono', monospace; min-height: 100vh; padding: 2rem; max-width: 800px; margin: 0 auto; }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 4px; color: #fff; margin-bottom: 4px; }
+.logo span { color: #b8f250; }
+.tagline { font-size: 11px; color: #444; letter-spacing: 2px; margin-bottom: 2.5rem; }
+.input-wrap { border: 0.5px solid #222; border-radius: 4px; margin-bottom: 1rem; }
+.input-label { font-size: 9px; letter-spacing: 3px; color: #444; text-transform: uppercase; padding: 10px 14px 0; }
+textarea { width: 100%; background: transparent; border: none; outline: none; font-family: 'DM Mono', monospace; font-size: 13px; color: #d4cfc5; padding: 6px 14px 12px; resize: none; line-height: 1.6; }
+textarea::placeholder { color: #333; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 14px; border-top: 0.5px solid #1a1a1a; }
+.tag { padding: 3px 9px; border: 0.5px solid #2a2a2a; border-radius: 2px; font-size: 10px; letter-spacing: 1px; cursor: pointer; color: #555; transition: all 0.1s; }
+.tag:hover { color: #888; }
+.tag.on { color: #b8f250; border-color: #b8f250; }
+.btn { width: 100%; padding: 13px; background: #b8f250; color: #080808; border: none; border-radius: 2px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 3px; cursor: pointer; margin-bottom: 1.5rem; }
+.btn:disabled { background: #1a1a1a; color: #444; cursor: default; }
+.loading { display: none; font-size: 11px; letter-spacing: 2px; color: #444; margin-bottom: 1rem; align-items: center; gap: 8px; }
+.loading.on { display: flex; }
+.dot { width: 4px; height: 4px; background: #b8f250; border-radius: 50%; animation: blink 1.2s infinite; }
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink { 0%,100%{opacity:0.2} 50%{opacity:1} }
+.story { display: none; font-size: 12px; line-height: 1.9; color: #666; border-left: 1.5px solid #b8f250; padding-left: 14px; margin-bottom: 1.5rem; font-style: italic; }
+.story.on { display: block; }
+.results { display: none; }
+.results.on { display: block; }
+.results-label { font-size: 9px; letter-spacing: 3px; color: #333; text-transform: uppercase; margin-bottom: 10px; }
+.card { border: 0.5px solid #1e1e1e; border-radius: 2px; padding: 16px; margin-bottom: 8px; display: flex; gap: 16px; transition: border-color 0.1s; }
+.card:hover { border-color: #333; }
+.score { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #b8f250; line-height: 1; min-width: 30px; }
+.card-info { flex: 1; }
+.fest-name { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: #fff; margin-bottom: 2px; }
+.fest-meta { font-size: 10px; color: #444; margin-bottom: 6px; letter-spacing: 1px; }
+.fest-reason { font-size: 11px; color: #555; line-height: 1.7; }
+.fest-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.fest-tag { font-size: 9px; letter-spacing: 1px; color: #444; border: 0.5px solid #222; padding: 2px 7px; }
+</style>
+</head>
+<body>
+<div class="logo">FEST<span>GURU</span></div>
+<div class="tagline">AI-POWERED ELECTRONIC MUSIC FESTIVAL GUIDE</div>
+
+<div class="input-wrap">
+  <div class="input-label">What are you looking for?</div>
+  <textarea id="input" rows="2" placeholder="underground techno, summer, budget under 100€, Europe..."></textarea>
+  <div class="tags">
+    <div class="tag" onclick="tog(this,'techno')">techno</div>
+    <div class="tag" onclick="tog(this,'house')">house</div>
+    <div class="tag" onclick="tog(this,'underground')">underground</div>
+    <div class="tag" onclick="tog(this,'experimental')">experimental</div>
+    <div class="tag" onclick="tog(this,'budget friendly')">budget</div>
+    <div class="tag" onclick="tog(this,'camping')">camping</div>
+    <div class="tag" onclick="tog(this,'summer')">summer</div>
+    <div class="tag" onclick="tog(this,'Netherlands')">Netherlands</div>
+    <div class="tag" onclick="tog(this,'Germany')">Germany</div>
+    <div class="tag" onclick="tog(this,'Belgium')">Belgium</div>
+  </div>
+</div>
+
+<button class="btn" id="planBtn" onclick="plan()">FIND MY FESTIVAL</button>
+
+<div class="loading" id="loading">
+  <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+  <span>scanning the scene...</span>
+</div>
+
+<div class="story" id="story"></div>
+
+<div class="results" id="results">
+  <div class="results-label">Top picks for you</div>
+  <div id="cardList"></div>
+</div>
+
+<script>
+let tags = [];
+
+function tog(el, tag) {
+  el.classList.toggle('on');
+  tags = tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag];
+}
+
+async function plan() {
+  const input = document.getElementById('input').value.trim();
+  const combined = [input, ...tags].filter(Boolean).join(', ');
+  if (!combined) return;
+
+  const btn = document.getElementById('planBtn');
+  btn.disabled = true;
+  document.getElementById('loading').classList.add('on');
+  document.getElementById('story').classList.remove('on');
+  document.getElementById('results').classList.remove('on');
+
+  try {
+    const resp = await fetch('/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input: combined })
+    });
+    const result = await resp.json();
+    document.getElementById('loading').classList.remove('on');
+    document.getElementById('story').textContent = result.story;
+    document.getElementById('story').classList.add('on');
+    document.getElementById('cardList').innerHTML = result.picks.map(p =>
+      '<div class="card"><div class="score">' + Math.round(p.score) + '</div><div class="card-info"><div class="fest-name">' + p.name + '</div><div class="fest-reason">' + p.reason + '</div></div></div>'
+    ).join('');
+    document.getElementById('results').classList.add('on');
+  } catch(e) {
+    document.getElementById('loading').classList.remove('on');
+  }
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
