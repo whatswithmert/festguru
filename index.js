@@ -71,7 +71,9 @@ app.post('/plan', async (req, res) => {
     });
 
     const data = await response.json();
-    const text = data.content[0].text.replace(/```json|```/g, '').trim();
+    console.log('API response:', JSON.stringify(data));
+    if (!data.content || !data.content[0]) throw new Error('Bad API response: ' + JSON.stringify(data));
+    const text = data.content[0].text.replace(/\`\`\`json|\`\`\`/g, '').trim();
     res.json(JSON.parse(text));
   } catch(e) {
     res.status(500).json({ error: e.message });
