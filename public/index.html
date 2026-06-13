@@ -107,9 +107,12 @@ async function plan() {
     document.getElementById('loading').classList.remove('on');
     document.getElementById('story').textContent = result.story;
     document.getElementById('story').classList.add('on');
-    document.getElementById('cardList').innerHTML = result.picks.map(p =>
-      '<div class="card"><div class="score">' + Math.round(p.score) + '</div><div class="card-info"><div class="fest-name">' + p.name + '</div><div class="fest-reason">' + p.reason + '</div></div></div>'
-    ).join('');
+    const allFests = await (await fetch('/festivals')).json();
+    document.getElementById('cardList').innerHTML = result.picks.map(p => {
+      const match = allFests.find(f => f.name.toLowerCase() === p.name.toLowerCase());
+      const href = match ? '/festival_detail.html?id=' + match.id : '#';
+      return '<a href="' + href + '" style="text-decoration:none;color:inherit;"><div class="card"><div class="score">' + Math.round(p.score) + '</div><div class="card-info"><div class="fest-name">' + p.name + '</div><div class="fest-reason">' + p.reason + '</div></div></div></a>';
+    }).join('');
     document.getElementById('results').classList.add('on');
   } catch(e) {
     document.getElementById('loading').classList.remove('on');

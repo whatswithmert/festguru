@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FestGuru - Festival Details</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #080808; color: #d4cfc5; font-family: 'DM Mono', monospace; min-height: 100vh; padding: 2rem; max-width: 800px; margin: 0 auto; }
+a.back { color: #666; font-size: 11px; letter-spacing: 2px; text-decoration: none; display: inline-block; margin-bottom: 2rem; }
+a.back:hover { color: #b8f250; }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 4px; color: #fff; margin-bottom: 4px; }
+.logo span { color: #b8f250; }
+.fest-name { font-family: 'Bebas Neue', sans-serif; font-size: 40px; letter-spacing: 3px; color: #fff; margin: 1.5rem 0 0.5rem; }
+.fest-loc { font-size: 12px; color: #666; letter-spacing: 1px; margin-bottom: 1.5rem; }
+.row { display: flex; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.box { border: 0.5px solid #222; border-radius: 4px; padding: 1rem 1.25rem; flex: 1; min-width: 140px; }
+.box-label { font-size: 9px; letter-spacing: 3px; color: #444; text-transform: uppercase; margin-bottom: 6px; }
+.box-value { font-size: 16px; color: #b8f250; font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px; }
+.section { margin-bottom: 1.5rem; }
+.section-label { font-size: 9px; letter-spacing: 3px; color: #444; text-transform: uppercase; margin-bottom: 8px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 10px; letter-spacing: 1px; color: #888; border: 0.5px solid #2a2a2a; padding: 3px 9px; border-radius: 2px; }
+.lineup-list { font-size: 13px; color: #999; line-height: 1.9; }
+.notes { font-size: 12px; color: #666; line-height: 1.8; font-style: italic; border-left: 1.5px solid #b8f250; padding-left: 14px; }
+.btn { display: inline-block; padding: 13px 24px; background: #b8f250; color: #080808; border: none; border-radius: 2px; font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 3px; cursor: pointer; text-decoration: none; margin-top: 1rem; }
+.loading { font-size: 12px; color: #444; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+<a href="/" class="back">&larr; BACK TO FESTGURU</a>
+<div class="logo">FEST<span>GURU</span></div>
+<div id="content" class="loading">loading festival...</div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const id = params.get('id');
+
+async function load() {
+  const res = await fetch('/festivals');
+  const festivals = await res.json();
+  const f = festivals.find(x => String(x.id) === String(id));
+  if (!f) {
+    document.getElementById('content').textContent = 'Festival not found.';
+    return;
+  }
+
+  const dateStr = f.start_date === f.end_date ? f.start_date : f.start_date + ' to ' + f.end_date;
+  const genres = (f.genres || []).map(g => '<span class="tag">' + g + '</span>').join('');
+  const vibes = (f.vibe || []).map(v => '<span class="tag">' + v + '</span>').join('');
+  const lineup = (f.lineup || []).filter(Boolean);
+
+  document.getElementById('content').innerHTML = `
+    <div class="fest-name">${f.name}</div>
+    <div class="fest-loc">${f.city || ''}${f.city && f.country ? ', ' : ''}${f.country || ''}</div>
+
+    <div class="row">
+      <div class="box"><div class="box-label">Dates</div><div class="box-value">${dateStr || '—'}</div></div>
+      <div class="box"><div class="box-label">Price</div><div class="box-value">${f.price ? '€' + f.price : '—'}</div></div>
+    </div>
+
+    ${genres ? '<div class="section"><div class="section-label">Genres</div><div class="tags">' + genres + '</div></div>' : ''}
+    ${vibes ? '<div class="section"><div class="section-label">Vibe</div><div class="tags">' + vibes + '</div></div>' : ''}
+    ${lineup.length ? '<div class="section"><div class="section-label">Lineup</div><div class="lineup-list">' + lineup.join(', ') + '</div></div>' : ''}
+    ${f.notes ? '<div class="section"><div class="section-label">Notes</div><div class="notes">' + f.notes + '</div></div>' : ''}
+    ${f.url ? '<a class="btn" href="' + f.url + '" target="_blank">VISIT WEBSITE</a>' : ''}
+  `;
+}
+
+load();
+</script>
+</body>
+</html>
