@@ -116,3 +116,4 @@ app.post('/admin/upload', authMiddleware, upload.single('file'), async (req, res
 });
 
 app.listen(process.env.PORT || 3000, () => console.log('FestGuru running'));
+
