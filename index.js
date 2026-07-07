@@ -117,3 +117,13 @@ app.post('/admin/upload', authMiddleware, upload.single('file'), async (req, res
 
 app.listen(process.env.PORT || 3000, () => console.log('FestGuru running'));
 
+
+app.patch('/admin/festivals/:id', authMiddleware, async (req, res) => {
+  try {
+    const { lineup } = req.body;
+    await pool.query('UPDATE festivals SET lineup=$1 WHERE id=$2', [lineup, req.params.id]);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
