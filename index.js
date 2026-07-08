@@ -127,3 +127,94 @@ app.patch('/admin/festivals/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+// Users & Favorites
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'festguru_secret_2026';
+
+// Create tables
+pool.query(`
+  CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    age_verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+  );
+  CREATE TABLE IF NOT EXISTS favorites (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    festival_id INTEGER REFERENCES festivals(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id, festival_id)
+  );
+`).catch(e => console.log('Table creation note:', e.message));
+
+// Auth middleware
+const authUser = (req, res, next) => {
+  const token = req.headers['authorization']?.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'No token' });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch { res.status(401).json({ error: 'Invalid token' }); }
+};
+
+// Register
+app.post('/auth/register', async (req, res) => {
+  try {
+    const { email, password, age_verified } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
+    const hashed = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      'INSERT INTO users (email, password, age_verified) VALUES ($1, $2, $3) RETURNING id, email',
+      [email.toLowerCase(), hashed, age_verified || false]
+    );
+    const token = jwt.sign({ id: result.rows[0].id, email: result.rows[0].email }, JWT_SECRET);
+    res.json({ token, user: result.rows[0] });
+  } catch (e) {
+    if (e.code === '23505') return res.status(400).json({ error: 'Email already exists' });
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Login
+app.post('/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const result = await pool.query('SELECT * FROM users WHERE email=$1', [email.toLowerCase()]);
+    if (!result.rows[0]) return res.status(400).json({ error: 'Invalid credentials' });
+    const valid = await bcrypt.compare(password, result.rows[0].password);
+    if (!valid) return res.status(400).json({ error: 'Invalid credentials' });
+    const token = jwt.sign({ id: result.rows[0].id, email: result.rows[0].email }, JWT_SECRET);
+    res.json({ token, user: { id: result.rows[0].id, email: result.rows[0].email } });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Get favorites
+app.get('/favorites', authUser, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT f.* FROM festivals f JOIN favorites fav ON f.id = fav.festival_id WHERE fav.user_id = $1 ORDER BY fav.created_at DESC',
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Add favorite
+app.post('/favorites/:id', authUser, async (req, res) => {
+  try {
+    await pool.query('INSERT INTO favorites (user_id, festival_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [req.user.id, req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// Remove favorite
+app.delete('/favorites/:id', authUser, async (req, res) => {
+  try {
+    await pool.query('DELETE FROM favorites WHERE user_id=$1 AND festival_id=$2', [req.user.id, req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
