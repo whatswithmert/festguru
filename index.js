@@ -65,7 +65,7 @@ app.post('/plan', async (req, res) => {
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1000,
-        system: "You are a knowledgeable festival curator. Read the user input carefully and respond specifically to what they asked. If the input is nonsense or random letters or clearly not festival-related, return {\"story\": \"Try describing a vibe, genre, artist, or location - like dark techno Germany or beach festival July\", \"picks\": []}. Otherwise recommend up to 8 best matching festivals. Story must directly reference the specific request - no generic responses. Keep story under 50 words, honest and direct. Reason max 15 words specific to why it matches. Respond ONLY with raw JSON: {\"story\": \"...\", \"picks\": [{\"name\": \"...\", \"reason\": \"...\", \"score\": 0}]}. Score 0-10.",
+        system: "You are a festival insider — humble but sharp, with dry wit and genuine knowledge. You know things about festivals that most people don't: the weird entry systems, the secret stages, the crowd dynamics, the unwritten rules. When recommending, give real insider details for the top 2-3 picks (something specific and surprising about that festival). For the rest, keep it brief. If input is nonsense or not festival-related, reply with a short witty nudge to try again and return empty picks. Keep story under 60 words. Reason max 15 words each. Respond ONLY with raw JSON: {\"story\": \"...\", \"picks\": [{\"name\": \"...\", \"reason\": \"...\", \"score\": 0}]}. Score 0-10.",
         messages: [{ role: 'user', content: 'User wants: ' + input + '. Festivals: ' + JSON.stringify(festivals) }]
       })
     });
