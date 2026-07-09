@@ -218,3 +218,13 @@ app.delete('/favorites/:id', authUser, async (req, res) => {
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+app.post('/auth/change-password', authUser, async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 6) return res.status(400).json({ error: 'Password too short' });
+    const hashed = await bcrypt.hash(password, 10);
+    await pool.query('UPDATE users SET password=$1 WHERE id=$2', [hashed, req.user.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
