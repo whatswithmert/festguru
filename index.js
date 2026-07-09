@@ -2,6 +2,8 @@ const express = require('express');
 const { Pool } = require('pg');
 const multer = require('multer');
 const XLSX = require('xlsx');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 const fs = require('fs');
 const path = require('path');
 
