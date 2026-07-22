@@ -230,3 +230,28 @@ app.post('/auth/change-password', authUser, async (req, res) => {
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
+
+// Forgot password - sends a temporary password via email
+app.post('/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const result = await pool.query('SELECT * FROM users WHERE email=$1', [email.toLowerCase()]);
+    if (!result.rows[0]) {
+      // Don't reveal if email exists or not
+      return res.json({ message: 'If that email exists, a reset link has been sent.' });
+    }
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const hashed = await bcrypt.hash(tempPassword, 10);
+    await pool.query('UPDATE users SET password=$1 WHERE id=$2', [hashed, result.rows[0].id]);
+
+    await resend.emails.send({
+      from: 'FestGuru <onboarding@resend.dev>',
+      to: email,
+      subject: 'Your FestGuru temporary password',
+      html: `<h2>Password Reset</h2><p>Your temporary password is: <strong>${tempPassword}</strong></p><p>Please log in and change it in Account Settings.</p>`
+    });
+
+    res.json({ message: 'If that email exists, a reset link has been sent.' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
